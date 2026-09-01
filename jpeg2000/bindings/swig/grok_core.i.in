@@ -1,0 +1,45 @@
+%module grok_core
+
+// Dynamically include grok.h using CMake's configured path
+%{
+#include "@GROK_CORE_INCLUDE_PATH@/grok.h"
+%}
+
+%include stdint.i
+
+
+%typemap(out) grk_image_comp* {
+    grk_image* img_ptr = (grk_image*) SWIG_Python_GetSwigThis(*swig_obj);
+    int num_components = img_ptr->numcomps;
+    PyObject* py_list = PyList_New(num_components);
+
+    for (int i = 0; i < num_components; i++) {
+        PyObject* py_comp = SWIG_NewPointerObj((void*)(&($1[i])), SWIGTYPE_p__grk_image_comp, 0);
+        PyList_SetItem(py_list, i, py_comp);
+    }
+    $result = py_list;
+}
+
+%include "@GROK_CORE_INCLUDE_PATH@/grok.h"
+
+
+%extend _grk_progression_state {
+    // Get the maximum layer value in layers_per_resolution
+    uint16_t get_max_layers() {
+        uint16_t max_layer = 0;
+        for (int i = 0; i < self->num_resolutions; i++) {
+            if (self->layers_per_resolution[i] > max_layer) {
+                max_layer = self->layers_per_resolution[i];
+            }
+        }
+        return max_layer;
+    }
+
+    // Set all elements in layers_per_resolution to a specified value
+    void set_max_layers(uint16_t value) {
+        for (int i = 0; i < self->num_resolutions; i++) {
+            self->layers_per_resolution[i] = value;
+        }
+    }
+}
+
